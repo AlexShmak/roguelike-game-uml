@@ -11,7 +11,14 @@ package "Interface Layer" #EEEEFF {
   
   class InputHandler {
     -keyBindings: Map<Key, CommandType>
-    +handleKeyPress(key: Key): Command?
+    +handleKeyPress(key: Key): CommandType?
+  }
+
+  enum CommandType {
+    MOVE
+    ATTACK
+    USE_ITEM
+    EQUIP_ITEM
   }
 }
 
@@ -19,11 +26,11 @@ package "Operation Layer" #FFEEEE {
   class GameController {
     -gameState: GameState
     +startGame()
-    +processCommand(command: Command)
+    +processCommand(command: CommandType)
     +update()
   }
   
-  class CharacterEventProcessor {
+  class EntityEventProcessor {
     +processAttack()
     +processMove()
     +processLevelProgression()
@@ -36,31 +43,24 @@ package "Operation Layer" #FFEEEE {
     +spawnMob(type: MobType, position: Position): Mob
     +changeMap(newMap: GameMap)
   }
-  
-  enum CommandType {
-    MOVE
-    ATTACK
-    USE_ITEM
-    EQUIP_ITEM
-  }
 }
 
 package "Domain Layer" #EEFFEE {
-  abstract class Character {
+  abstract class Entity {
     -position: Pair<Int, Int>
     -stats: Stats
     -level: Int
     -experiencePoints: Int
     -attackPower: Int
     +move(direction: Direction)
-    +attack(target: Character) 
+    +attack(target: Entity) 
     +receiveDamage(amount: Int)
     +gainExperience(amount: Int)
+    +clone()
   }
   
   class Player {
     -inventory: Inventory
-    +handleInput(command: Command): Boolean
     +equipItem(item: Item): Boolean
   }
   
@@ -75,7 +75,7 @@ package "Domain Layer" #EEFFEE {
 
   class ConfusedMobDecorator {
     +move(direction: Direction)
-    +attack(target: Character)
+    +attack(target: Entity)
   }
 
   interface MobBehaviorStrategy {
@@ -100,17 +100,20 @@ package "Domain Layer" #EEFFEE {
   }
   
   class CombatSystem {
-    +resolveAttack(attacker: Character, defender: Character)
+    +resolveAttack(attacker: Entity, defender: Entity)
   }
   
   class MovementSystem {
-    +move(character: Character, direction: Direction)
-    +resolveCollision(characterA: Character, characterB: Character)
+    -gameMap: GameMap
+    +move(character: Entity, direction: Direction)
+    +resolveCollision(characterA: Entity, characterB: Entity)
   }
   
   class LevelSystem {
-    +calculateExperienceForLevel(level: Int)
-    +applyLevelUp(character: Character)
+    -character: Entity
+    -calculateExperienceForLevel(level: Int): Int
+    -applyLevelUp()
+    +addExp(exp: int)
   }
   
   class GameMap {
@@ -133,16 +136,35 @@ package "Domain Layer" #EEFFEE {
     BODY
     ARMS
     LEGS
+    WEAPON
   }
   
   abstract class Item {
     +name: String
     +use()
+    +clone()
   }
   
   class EquippableItem {
     +slot: EquipSlot
     +statBonuses: Stats
+  }
+
+  interface AbstractEquipmentFactory {
+    +createHelmet(): EquippableItem
+    +createBodyArmor(): EquippableItem
+    +createLegsArmor(): EquippableItem
+    +createArmsArmor(): EquippableItem
+    +createWeapon(): EquippableItem
+  }
+
+  class DefaultEquipmentFactory {
+  }
+
+  class LegendaryEquipmentFactory {
+  }
+
+  class MysticEquipmentFactory {
   }
   
   enum Direction {
@@ -151,13 +173,42 @@ package "Domain Layer" #EEFFEE {
     LEFT
     RIGHT
   }
+
+  interface AbstractMobFactory {
+    +createArcher(): Mob
+    +createWarrior(): Mob
+    +createWizard(): Mob
+  }
+
+  class HotBiomMobFactory {
+  }
+
+  class ColdBiomMObFactory {
+  }
 }
 
 package "Infrastructure Layer" #FFFFEE {
-  class MapGenerator {
+  class MapDirector {
+    -mapBuilder: MapBuilder
+    +MapDirector(mapBuilder)
+    +makeDefaultMap()
+    +makeBossMap()
+  }
+
+  interface MapBuilder {
+    +reset()
+    +addTreasures()
+    +addDestructibleObstacles()
+    +addLiquidObstacles()
     +generate(width: Int, height: Int, level: Int): GameMap
   }
-  
+
+  class DefaultMapBuilder {
+  }
+
+  class BossMapBuilder {
+  } 
+
   class MapRepository {
     +loadFromFile(filePath: String): GameMap
   }
@@ -177,11 +228,11 @@ package "Infrastructure Layer" #FFFFEE {
   }
 }
 
-Character <|-- Player
-Character <|-- Mob
-Character --> Stats
+Entity <|-- Player
+Entity <|-- Mob
+Entity --> Stats
 
-Player --> Inventory
+Player o--> Inventory
 
 Inventory o--> Item
 Inventory --> EquipSlot
@@ -190,33 +241,34 @@ Item <|-- EquippableItem
 
 InputHandler --> CommandType
 
-GameController --> GameState
-GameController ..> CharacterEventProcessor: process event
+GameController o--> GameState
+GameController ..> EntityEventProcessor: process event
 GameController ..> UserInterface: render
 GameController ..> GameRepository: uses
 GameController --> InputHandler
+GameController --> CommandType
+GameController ..> MapDirector: generate map
 
-CharacterEventProcessor ..> CombatSystem
-CharacterEventProcessor ..> MovementSystem
-CharacterEventProcessor ..> LevelSystem
+EntityEventProcessor ..> CombatSystem
+EntityEventProcessor ..> MovementSystem
+EntityEventProcessor ..> LevelSystem
 
-GameState --> GameMap
-GameState --> Player
-GameState --> Mob
+GameState o--> GameMap
+GameState o--> Player
+GameState o--> Mob
+GameState ..> AbstractMobFactory
 
-MovementSystem --> GameMap
+MovementSystem o--> GameMap
 MovementSystem --> Direction
-MovementSystem --> Character
-LevelSystem --> Character
-CombatSystem --> Character
+MovementSystem --> Entity
+LevelSystem o--> Entity
+CombatSystem --> Entity
 
-UserInterface --> GameState
+GameMap <-- MapBuilder
+GameMap <-- MapRepository
+GameMap o--> Tile
 
-GameMap ..> MapGenerator: created by
-GameMap ..> MapRepository: loaded by
-GameMap --> Tile
-
-Mob --> MobBehaviorStrategy
+Mob o--> MobBehaviorStrategy
 MobBehaviorStrategy <|.. NeutralMobBehaviorStrategy
 MobBehaviorStrategy <|.. AggressiveMobBehaviorStrategy
 MobBehaviorStrategy <|.. PassiveMobBehaviorStrategy
@@ -225,5 +277,21 @@ Mob <|--* MobBaseDecorator
 MobBaseDecorator <|-- ConfusedMobDecorator
 
 GameRepository --> ProfileData
+
+EquippableItem --> EquipSlot
+
+MapDirector --> MapBuilder
+DefaultMapBuilder ..|> MapBuilder
+BossMapBuilder ..|> MapBuilder
+MapBuilder ..> AbstractEquipmentFactory
+
+DefaultEquipmentFactory ..|> AbstractEquipmentFactory
+LegendaryEquipmentFactory ..|> AbstractEquipmentFactory
+MysticEquipmentFactory ..|> AbstractEquipmentFactory
+AbstractEquipmentFactory --> EquippableItem
+
+HotBiomMobFactory ..|> AbstractMobFactory
+ColdBiomMObFactory ..|> AbstractMobFactory
+AbstractMobFactory --> Mob
 
 @enduml
