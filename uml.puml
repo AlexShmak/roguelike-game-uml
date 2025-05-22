@@ -25,9 +25,10 @@ package "Interface Layer" #EEEEFF {
 package "Operation Layer" #FFEEEE {
   class GameController {
     -gameState: GameState
-    +startGame()
-    +processCommand(command: CommandType)
-    +update()
+    +initGame()
+    -startGameLoop()
+    -initLevel()
+    -processCommand(command: CommandType)
   }
   
   class EntityEventProcessor {
@@ -65,7 +66,10 @@ package "Domain Layer" #EEFFEE {
   }
   
   class Mob {
-    +behavior: MobBehaviorStrategy
+    -behavior: MobBehaviorStrategy
+    +Mob(behavior: MobBehaviorStrategy)
+    +onCollision()
+    +onReceivingDamage()
   }
 
   abstract class MobBaseDecorator {
@@ -79,8 +83,8 @@ package "Domain Layer" #EEFFEE {
   }
 
   interface MobBehaviorStrategy {
-    +collapseAction()
-    +attackAction()
+    +onCollision()
+    +onReceivingDamage()
   }
 
   class NeutralMobBehaviorStrategy {
@@ -180,19 +184,10 @@ package "Domain Layer" #EEFFEE {
     +createWizard(): Mob
   }
 
-  class HotBiomMobFactory {
+  class HotBiomeMobFactory {
   }
 
-  class ColdBiomMObFactory {
-  }
-}
-
-package "Infrastructure Layer" #FFFFEE {
-  class MapDirector {
-    -mapBuilder: MapBuilder
-    +MapDirector(mapBuilder)
-    +makeDefaultMap()
-    +makeBossMap()
+  class ColdBiomeMobFactory {
   }
 
   interface MapBuilder {
@@ -209,6 +204,9 @@ package "Infrastructure Layer" #FFFFEE {
   class BossMapBuilder {
   } 
 
+}
+
+package "Infrastructure Layer" #FFFFEE {
   class MapRepository {
     +loadFromFile(filePath: String): GameMap
   }
@@ -235,19 +233,16 @@ Entity --> Stats
 Player o--> Inventory
 
 Inventory o--> Item
-Inventory --> EquipSlot
 
 Item <|-- EquippableItem
 
-InputHandler --> CommandType
 
 GameController o--> GameState
 GameController ..> EntityEventProcessor: process event
 GameController ..> UserInterface: render
 GameController ..> GameRepository: uses
-GameController --> InputHandler
-GameController --> CommandType
-GameController ..> MapDirector: generate map
+GameController ..> InputHandler
+GameController ..> MapBuilder: generate map
 
 EntityEventProcessor ..> CombatSystem
 EntityEventProcessor ..> MovementSystem
@@ -259,7 +254,6 @@ GameState o--> Mob
 GameState ..> AbstractMobFactory
 
 MovementSystem o--> GameMap
-MovementSystem --> Direction
 MovementSystem --> Entity
 LevelSystem o--> Entity
 CombatSystem --> Entity
@@ -278,9 +272,7 @@ MobBaseDecorator <|-- ConfusedMobDecorator
 
 GameRepository --> ProfileData
 
-EquippableItem --> EquipSlot
 
-MapDirector --> MapBuilder
 DefaultMapBuilder ..|> MapBuilder
 BossMapBuilder ..|> MapBuilder
 MapBuilder ..> AbstractEquipmentFactory
@@ -290,8 +282,8 @@ LegendaryEquipmentFactory ..|> AbstractEquipmentFactory
 MysticEquipmentFactory ..|> AbstractEquipmentFactory
 AbstractEquipmentFactory --> EquippableItem
 
-HotBiomMobFactory ..|> AbstractMobFactory
-ColdBiomMObFactory ..|> AbstractMobFactory
+HotBiomeMobFactory ..|> AbstractMobFactory
+ColdBiomeMobFactory ..|> AbstractMobFactory
 AbstractMobFactory --> Mob
 
 @enduml
