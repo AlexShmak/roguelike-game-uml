@@ -1,6 +1,344 @@
-@startuml Roguelike Game Architecture
+' @startuml Roguelike Game Architecture
+
+' package "Interface Layer" #EEEEFF {
+
+'   enum Direction {
+'     UP
+'     DOWN
+'     LEFT
+'     RIGHT
+'   }
+
+'   class UserInterface {
+'     +render(gameState: GameState)
+'     +showInventory(inventory: Inventory)
+'     +showStats(hp: Int, exp: Int, level: Int)
+'     +showGameOverScreen()
+'     +showPauseMenu()
+'   }
+  
+'   class InputHandler {
+'     -keyBindings: Map<Key, Command>
+'     +handleKeyPress(key: Key): Command?
+'   }
+
+'   class EquipItemCommand {
+'     -slot: EquipSlot
+'     +EquipItemCommand(slot: EquipSlot)
+'   }
+
+'   class AttackCommand {} 
+
+'   class MoveCommand {
+'     -direction: Direction
+'     +MoveCommand(direction: Direction)
+'   }
+
+'   interface Command {
+'     +execute()
+'   }
+' }
+
+' package "Operation Layer" #FFEEEE {
+'   class GameController {
+'     -gameState: GameState
+'     +initGame()
+'     -startGameLoop()
+'     -initLevel()
+'     -processCommand(command: Command)
+'   }
+  
+'   class EntityEventProcessor {
+'     +processAttack()
+'     +processMove()
+'     +processLevelProgression()
+'   }
+  
+'   class GameState {
+'     -player: Player
+'     -mobs: List<Mob>
+'     -currentMap: GameMap
+'     +GameState(player: Player, mobs: List<Mob>, currentMap: GameMap)
+'     +spawnMob(type: MobType, position: Position): Mob
+'     +changeMap(newMap: GameMap)
+'     +makeSnapshot(): GameStateSnapshot
+'   }
+' }
+
+' package "Domain Layer" #EEFFEE {
+'   abstract class Entity {
+'     -position: Pair<Int, Int>
+'     -stats: Stats
+'     -level: Int
+'     -experiencePoints: Int
+'     -attackPower: Int
+'     +move(direction: Direction)
+'     +attack(target: Entity) 
+'     +receiveDamage(amount: Int)
+'     +gainExperience(amount: Int)
+'     +clone()
+'   }
+  
+'   class Player {
+'     -inventory: Inventory
+'     +equipItem(item: Item): Boolean
+'   }
+  
+'   class Mob {
+'     -behavior: MobBehaviorStrategy
+'     -state: MobState
+'     +Mob(behavior: MobBehaviorStrategy)
+'     +onCollision()
+'     +onReceivingDamage()
+'   }
+
+'   abstract class MobState {
+'     -mob: Mob
+'     +MobState(mob: Mob)
+'     +onCollision()
+'     +onReceivingDamage()
+'   }
+
+'   class DefaultMobState {}
+
+'   class CowardlyMobState {}
+
+'   abstract class MobBaseDecorator {
+'     -mob: Mob
+'     +MobBaseDecorator(mob: Mob)
+'   }
+
+'   class ConfusedMobDecorator {
+'     +move(direction: Direction)
+'     +attack(target: Entity)
+'   }
+
+'   interface MobBehaviorStrategy {
+'     +onCollision()
+'     +onReceivingDamage()
+'   }
+
+'   class NeutralMobBehaviorStrategy {
+'   }
+
+'   class AggressiveMobBehaviorStrategy {
+'   }
+
+'   class PassiveMobBehaviorStrategy {
+'   }
+  
+'   class Stats {
+'     -health: Int
+'     -attackPower: Int
+'     -defense: Int
+'     +applyEffect(effect: StatEffect)
+'   }
+  
+'   class CombatSystem {
+'     +resolveAttack(attacker: Entity, defender: Entity)
+'   }
+  
+'   class MovementSystem {
+'     -gameMap: GameMap
+'     +move(character: Entity, direction: Direction)
+'     +resolveCollision(characterA: Entity, characterB: Entity)
+'   }
+  
+'   class LevelSystem {
+'     -character: Entity
+'     -calculateExperienceForLevel(level: Int): Int
+'     -applyLevelUp()
+'     +addExp(exp: int)
+'   }
+  
+'   class GameMap {
+'     -tiles: Array<Array<Tile>>
+'   }
+
+'   class Tile {
+'     +isWalkable(): Boolean
+'   }
+  
+'   class Inventory {
+'     -items: List<Item>
+'     -equippedItems: Map<EquipSlot, Item>
+'     +equipItem(item: Item, slot: EquipSlot): Boolean
+'     +getTotalBonuses(): Stats
+'   }
+
+'   enum EquipSlot {
+'     HEAD
+'     BODY
+'     ARMS
+'     LEGS
+'     WEAPON
+'   }
+  
+'   abstract class Item {
+'     +name: String
+'     +use()
+'     +clone()
+'   }
+  
+'   class EquippableItem {
+'     +slot: EquipSlot
+'     +statBonuses: Stats
+'   }
+
+'   interface AbstractEquipmentFactory {
+'     +createHelmet(): EquippableItem
+'     +createBodyArmor(): EquippableItem
+'     +createLegsArmor(): EquippableItem
+'     +createArmsArmor(): EquippableItem
+'     +createWeapon(): EquippableItem
+'   }
+
+'   class DefaultEquipmentFactory {
+'   }
+
+'   class LegendaryEquipmentFactory {
+'   }
+
+'   class MysticEquipmentFactory {
+'   }
+
+'   interface AbstractMobFactory {
+'     +createArcher(): Mob
+'     +createWarrior(): Mob
+'     +createWizard(): Mob
+'   }
+
+'   class HotBiomeMobFactory {
+'   }
+
+'   class ColdBiomeMobFactory {
+'   }
+
+'   interface MapBuilder {
+'     +reset()
+'     +addTreasures()
+'     +addDestructibleObstacles()
+'     +addLiquidObstacles()
+'     +generate(width: Int, height: Int, level: Int): GameMap
+'   }
+
+'   class DefaultMapBuilder {
+'   }
+
+'   class BossMapBuilder {
+'   } 
+
+' }
+
+' package "Infrastructure Layer" #FFFFEE {
+'   class MapRepository {
+'     +loadFromFile(filePath: String): GameMap
+'   }
+  
+'   class GameRepository {
+'     +saveGame(saveData: GameStateSnapshot): Boolean
+'     +loadGame(): GameStateSnapshot
+'   }
+
+'   class GameStateSnapshot {
+'     -player: Player
+'     -mobs: List<Mob>
+'     -currentMap: GameMap
+'     +GameStateSnapshot(player: Player, mobs: List<Mob>, currentMap: GameMap)
+'     +GameStateSnapshot(serializedGameStateSnapshot: String)
+'     +serializeGameStateSnapshot(): String
+'     -deserializeGameStateSnapshot(data: String): GameStateSnapshot
+'     +restore(): GameState
+'   }
+' }
+
+' Entity <|-- Player
+' Entity <|-- Mob
+' Entity --> Stats
+
+' Player o--> Inventory
+
+' Inventory o--> Item
+
+' Item <|-- EquippableItem
+
+
+' GameController o--> GameState
+' GameController ..> EntityEventProcessor: process event
+' GameController ..> UserInterface: render
+' GameController ..> GameRepository: uses
+' GameController ..> InputHandler
+' GameController ..> MapBuilder: generate map
+
+' EntityEventProcessor ..> CombatSystem
+' EntityEventProcessor ..> MovementSystem
+' EntityEventProcessor ..> LevelSystem
+
+' GameState o--> GameMap
+' GameState o--> Player
+' GameState o--> Mob
+' GameState ..> AbstractMobFactory
+
+' MovementSystem o--> GameMap
+' MovementSystem --> Entity
+' LevelSystem o--> Entity
+' CombatSystem --> Entity
+
+' GameMap <-- MapBuilder
+' GameMap <-- MapRepository
+' GameMap o--> Tile
+
+' Mob o--> MobBehaviorStrategy
+' MobBehaviorStrategy <|.. NeutralMobBehaviorStrategy
+' MobBehaviorStrategy <|.. AggressiveMobBehaviorStrategy
+' MobBehaviorStrategy <|.. PassiveMobBehaviorStrategy
+
+' Mob <|--* MobBaseDecorator
+' MobBaseDecorator <|-- ConfusedMobDecorator
+
+' GameRepository --> GameStateSnapshot
+
+
+' DefaultMapBuilder ..|> MapBuilder
+' BossMapBuilder ..|> MapBuilder
+' MapBuilder ..> AbstractEquipmentFactory
+
+' DefaultEquipmentFactory ..|> AbstractEquipmentFactory
+' LegendaryEquipmentFactory ..|> AbstractEquipmentFactory
+' MysticEquipmentFactory ..|> AbstractEquipmentFactory
+' AbstractEquipmentFactory --> EquippableItem
+
+' HotBiomeMobFactory ..|> AbstractMobFactory
+' ColdBiomeMobFactory ..|> AbstractMobFactory
+' AbstractMobFactory --> Mob
+
+' Command <|.. MoveCommand
+' Command <|.. EquipItemCommand
+' Command <|.. AttackCommand
+' Command <--  InputHandler
+' Command <..  GameController
+
+' Mob o--> MobState
+' CowardlyMobState --|> MobState
+' DefaultMobState --|> MobState
+
+
+' @enduml
+
+@startuml Game Architecture
 
 package "Interface Layer" #EEEEFF {
+  enum Direction {
+    UP
+    DOWN
+    LEFT
+    RIGHT
+  }
+
+  interface Command {
+    +execute()
+  }
+
   class UserInterface {
     +render(gameState: GameState)
     +showInventory(inventory: Inventory)
@@ -8,17 +346,23 @@ package "Interface Layer" #EEEEFF {
     +showGameOverScreen()
     +showPauseMenu()
   }
-  
+
   class InputHandler {
-    -keyBindings: Map<Key, CommandType>
-    +handleKeyPress(key: Key): CommandType?
+    -keyBindings: Map<Key, Command>
+    +handleKeyPress(key: Key): Command?
   }
 
-  enum CommandType {
-    MOVE
-    ATTACK
-    USE_ITEM
-    EQUIP_ITEM
+  class MoveCommand {
+    -direction: Direction
+    +MoveCommand(direction: Direction)
+  }
+
+  class EquipItemCommand {
+    -slot: EquipSlot
+    +EquipItemCommand(slot: EquipSlot)
+  }
+
+  class AttackCommand {
   }
 }
 
@@ -28,25 +372,35 @@ package "Operation Layer" #FFEEEE {
     +initGame()
     -startGameLoop()
     -initLevel()
-    -processCommand(command: CommandType)
+    -processCommand(command: Command)
   }
-  
+
+  class GameState {
+    -player: Player
+    -mobs: List<Mob>
+    -currentMap: GameMap
+    +GameState(player: Player, mobs: List<Mob>, currentMap: GameMap)
+    +spawnMob(type: MobType, position: Position): Mob
+    +changeMap(newMap: GameMap)
+    +makeSnapshot(): GameStateSnapshot
+  }
+
   class EntityEventProcessor {
     +processAttack()
     +processMove()
     +processLevelProgression()
   }
-  
-  class GameState {
-    -player: Player
-    -mobs: List<Mob>
-    -currentMap: GameMap
-    +spawnMob(type: MobType, position: Position): Mob
-    +changeMap(newMap: GameMap)
-  }
 }
 
 package "Domain Layer" #EEFFEE {
+  enum EquipSlot {
+    HEAD
+    BODY
+    ARMS
+    LEGS
+    WEAPON
+  }
+
   abstract class Entity {
     -position: Pair<Int, Int>
     -stats: Stats
@@ -54,22 +408,36 @@ package "Domain Layer" #EEFFEE {
     -experiencePoints: Int
     -attackPower: Int
     +move(direction: Direction)
-    +attack(target: Entity) 
+    +attack(target: Entity)
     +receiveDamage(amount: Int)
     +gainExperience(amount: Int)
     +clone()
   }
-  
+
   class Player {
     -inventory: Inventory
     +equipItem(item: Item): Boolean
   }
-  
+
   class Mob {
     -behavior: MobBehaviorStrategy
+    -state: MobState
     +Mob(behavior: MobBehaviorStrategy)
     +onCollision()
     +onReceivingDamage()
+  }
+
+  abstract class MobState {
+    -mob: Mob
+    +MobState(mob: Mob)
+    +onCollision()
+    +onReceivingDamage()
+  }
+
+  class DefaultMobState {
+  }
+
+  class CowardlyMobState {
   }
 
   abstract class MobBaseDecorator {
@@ -95,31 +463,31 @@ package "Domain Layer" #EEFFEE {
 
   class PassiveMobBehaviorStrategy {
   }
-  
+
   class Stats {
     -health: Int
     -attackPower: Int
     -defense: Int
     +applyEffect(effect: StatEffect)
   }
-  
+
   class CombatSystem {
     +resolveAttack(attacker: Entity, defender: Entity)
   }
-  
+
   class MovementSystem {
     -gameMap: GameMap
     +move(character: Entity, direction: Direction)
     +resolveCollision(characterA: Entity, characterB: Entity)
   }
-  
+
   class LevelSystem {
     -character: Entity
     -calculateExperienceForLevel(level: Int): Int
     -applyLevelUp()
     +addExp(exp: int)
   }
-  
+
   class GameMap {
     -tiles: Array<Array<Tile>>
   }
@@ -127,7 +495,7 @@ package "Domain Layer" #EEFFEE {
   class Tile {
     +isWalkable(): Boolean
   }
-  
+
   class Inventory {
     -items: List<Item>
     -equippedItems: Map<EquipSlot, Item>
@@ -135,20 +503,12 @@ package "Domain Layer" #EEFFEE {
     +getTotalBonuses(): Stats
   }
 
-  enum EquipSlot {
-    HEAD
-    BODY
-    ARMS
-    LEGS
-    WEAPON
-  }
-  
   abstract class Item {
     +name: String
     +use()
     +clone()
   }
-  
+
   class EquippableItem {
     +slot: EquipSlot
     +statBonuses: Stats
@@ -169,13 +529,6 @@ package "Domain Layer" #EEFFEE {
   }
 
   class MysticEquipmentFactory {
-  }
-  
-  enum Direction {
-    UP
-    DOWN
-    LEFT
-    RIGHT
   }
 
   interface AbstractMobFactory {
@@ -202,27 +555,28 @@ package "Domain Layer" #EEFFEE {
   }
 
   class BossMapBuilder {
-  } 
-
+  }
 }
 
 package "Infrastructure Layer" #FFFFEE {
   class MapRepository {
     +loadFromFile(filePath: String): GameMap
   }
-  
+
   class GameRepository {
-    +saveGame(saveData: ProfileData): Boolean
-    +loadGame(serializedProfileData: String): ProfileData
-    +newGame(): ProfileData
+    +saveGame(saveData: GameStateSnapshot): Boolean
+    +loadGame(): GameStateSnapshot
   }
 
-  class ProfileData {
-    -playerData: Player
-    -gameState: GameState
-    +ProfileData(player: Player, gamestate: GameState)
-    +serializeProfileData(): String
-    +deserializeProfileData(data: String): ProfileData
+  class GameStateSnapshot {
+    -player: Player
+    -mobs: List<Mob>
+    -currentMap: GameMap
+    +GameStateSnapshot(player: Player, mobs: List<Mob>, currentMap: GameMap)
+    +GameStateSnapshot(serializedGameStateSnapshot: String)
+    +serializeGameStateSnapshot(): String
+    -deserializeGameStateSnapshot(data: String): GameStateSnapshot
+    +restore(): GameState
   }
 }
 
@@ -231,18 +585,15 @@ Entity <|-- Mob
 Entity --> Stats
 
 Player o--> Inventory
-
 Inventory o--> Item
-
 Item <|-- EquippableItem
 
-
 GameController o--> GameState
-GameController ..> EntityEventProcessor: process event
-GameController ..> UserInterface: render
-GameController ..> GameRepository: uses
+GameController ..> EntityEventProcessor
+GameController ..> UserInterface
+GameController ..> GameRepository
 GameController ..> InputHandler
-GameController ..> MapBuilder: generate map
+GameController ..> MapBuilder
 
 EntityEventProcessor ..> CombatSystem
 EntityEventProcessor ..> MovementSystem
@@ -270,8 +621,7 @@ MobBehaviorStrategy <|.. PassiveMobBehaviorStrategy
 Mob <|--* MobBaseDecorator
 MobBaseDecorator <|-- ConfusedMobDecorator
 
-GameRepository --> ProfileData
-
+GameRepository --> GameStateSnapshot
 
 DefaultMapBuilder ..|> MapBuilder
 BossMapBuilder ..|> MapBuilder
@@ -285,5 +635,15 @@ AbstractEquipmentFactory --> EquippableItem
 HotBiomeMobFactory ..|> AbstractMobFactory
 ColdBiomeMobFactory ..|> AbstractMobFactory
 AbstractMobFactory --> Mob
+
+Command <|.. MoveCommand
+Command <|.. EquipItemCommand
+Command <|.. AttackCommand
+Command <-- InputHandler
+Command <.. GameController
+
+Mob o--> MobState
+CowardlyMobState --|> MobState
+DefaultMobState --|> MobState
 
 @enduml
